@@ -1,0 +1,10 @@
+# Ignore
+database/*              # Data inside of database
+test_database/*         # Data inside of test database
+
+# Keep
+!/.gitignore            # Ignore file
+!/README.md             # Read me file
+!&.py                   # Python files    
+!database/              # Database dir
+!test_database/         # Test database dir
