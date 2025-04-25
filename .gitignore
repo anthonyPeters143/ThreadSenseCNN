@@ -1,14 +1,18 @@
-# Ignore
-database/*              # Data inside of database
-test_database/*         # Data inside of test database
+# Ignore contents of the database folders
+database/*              
+test_database/*     
 
-# Keep
-!/.gitignore            # Ignore file
-!/README.md             # Read me file
-!*.py                   # Python files    
 
-!/database/              # Database dir
-!/test_database/         # Test database dir
 
-!/database/.gitkeep
-!/test_database/.gitkeep
+# Keep specific files
+!/.gitignore            
+!/README.md             
+!*.py                   
+
+# Keep the database and test_database directories
+!/database/             
+!/test_database/        
+
+# Keep the .gitkeep file to ensure the folder is tracked
+!/database/.gitkeep     
+!/test_database/.gitkeep 
