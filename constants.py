@@ -1,28 +1,36 @@
+"""
+constants.py
+Defines project-wide constants, file paths, column labels, and menu options.
+
+Dependencies:
+- None (used by all other modules)
+
+Required Imports:
+- None
+"""
 ####################################################################################################
 # SYSTEM CONSTANCES
 ####################################################################################################
 
 # Paths
-DATABASE_PATH = "database"
-TESTING_DATABASE_PATH = "test_database"
+INPUT = "input"
+PREDICTION_INPUT = "prediction_input"
 
-TRAINING_CSV = "training_info.csv"
-TRAINING_PREPROCESSED_CSV = "training_preprocessed_data.csv"
-TRAINING_IMAGES = "training_images"
-TRAINING_ORGINAL_VALUES_CSV = "training_orginal_values.csv"
-TESTING_CSV = "test_info.csv"
-TESTING_PREPROCESSED_CSV = "test_preprocessed_data.csv"
-TESTING_IMAGES = "test_images"
-TESTING_ORGINAL_VALUES_CSV = "testing_orginal_values.csv"
+INPUT_CSV = "input_csv.csv"
+INPUT_PREPROCESSED_CSV = "input_csv_preprocessed.csv"
+IMAGES = "input_images"
+ORGINAL_STATS_CSV = "orginal_input_csv_stats.csv"
+
+MODEL_HISTORY = "model_history.csv"
 
 COMPARSION_TABLE_CSV = "comparsion_table.csv"
+
+COMPARSION_GRAPH = "comparsion_graph.png"
 
 TRAINING_LOGS = "training_logs"
 
 MODEL_CHCEKPOINTS = "model_checkpoints"
 BEST_MODEL = "best_model.keras"
-
-SVG_CONVERSION = "svg_conversion.svg"
 
 # Labes for columns
 IMAGE_PATH = "image path"
@@ -54,6 +62,15 @@ THREAD_COUNT_PREDICTED = "thread_count_predicted"
 THREAD_COUNT_ABS_ERROR = "thread_count_abs_error"
 WIDTH_ABS_ERROR = "width_count_abs_error"
 HEIGHT_ABS_ERROR = "height_count_abs_error"
+
+# Menu labels
+EXIT = "Exit system"
+SCRAPE = "Scrape data"
+PROCESSING = "Process data"
+TRAINING = "Train using data"
+WHOLE = "Data pipeline"
+PREDICTING = "Predicting using data"
+DISPLAY = "Display data"
 
 # Set max dimenision for images
 MAX_DIMENSION = 1024

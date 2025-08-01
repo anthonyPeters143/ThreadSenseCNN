@@ -1,18 +1,37 @@
-# Ignore contents of the database folders
-database/*              
-test_database/*     
-
-
-
-# Keep specific files
+# Keep files
 !/.gitignore            
 !/README.md             
-!*.py                   
+!constants.py
+!utility.py
+!menu.py
+!scraping.py
+!processing.py
+!models.py
+!displaying.py
 
-# Keep the database and test_database directories
-!/database/             
-!/test_database/        
+# Keep the directories
+!input/
+!prediction_input/
+!input_images/
+!model_checkpoints/
+!training_logs/
 
-# Keep the .gitkeep file to ensure the folder is tracked
-!/database/.gitkeep     
-!/test_database/.gitkeep 
+# Add .gitkeep file to ensure directories are tracked
+!input/.gitkeep
+!prediction_input/.gitkeep
+!input_images/.gitkeep
+!model_checkpoints/.gitkeep
+!training_logs/.gitkeep
+
+# Ignore files
+
+
+# Ignore directories
+.venv/
+
+# Ignore contents of directories
+input/*
+prediction_input/*
+input_images/*
+model_checkpoints/*
+training_logs/*

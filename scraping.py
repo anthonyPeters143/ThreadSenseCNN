@@ -1,8 +1,27 @@
+"""
+scraping.py
+Handles scraping of DST and image files, metadata extraction, image conversion to PNG, and CSV dataset creation.
+
+Dependencies:
+- constants.py
+
+Required Imports:
+- os
+- shutil
+- csv
+- pyembroidery
+- cairosvg
+- PIL
+- tempfile
+"""
 ####################################################################################################
 # SCRAPING METHODS
 ####################################################################################################
 
 # Will convert aand save passed file DST file as a PNG image at the passed image path, will create a temp SVG file used for conversion, will return flag based on valid execution
+# Purpose: Convert a DST embroidery file to PNG via temporary SVG, adjusting stroke for visibility.
+# Inputs: file_path (str): Path to DST file. image_path (str): Output PNG path.
+# Output: bool: True if conversion succeeded, False otherwise.
 def convert_pattern_into_png(file_path, image_path):
     # Import libaries
     import pyembroidery
@@ -48,6 +67,9 @@ def convert_pattern_into_png(file_path, image_path):
     return execute_valid_flag
 
 # Will convert and sac\ve passed file into a PNG file at the passed image path, will return flag based on valid execution
+# Purpose: Convert a standard image file to PNG format.
+# Inputs: file_path (str): Input image path. image_path (str): Output PNG path.
+# Output: bool: True if conversion succeeded, False otherwise.
 def convert_image_into_png(file_path, image_path):
     # Import libaries
     from PIL import Image
@@ -72,6 +94,9 @@ def convert_image_into_png(file_path, image_path):
     return execute_valid_flag
 
 # Will create and return a property list of thread count, width (centimeter), height (centimeter), and image path from passed DST file
+# Purpose: Extracts metadata (thread count, width, height) from a DST embroidery file.
+# Inputs: file_path (str): Path to DST file. image_path (str): Corresponding PNG path.
+# Output: list: [image_path, thread_count, width, height] if valid, else empty list.
 def determine_entry_data(file_path, image_path):
     # Import libaries
     import pyembroidery
@@ -108,6 +133,9 @@ def determine_entry_data(file_path, image_path):
     return property_list
     
 # Will prompt user to input thread count, width (centimeter), height (centimeter) for image path
+# Purpose: Prompt user for metadata when automatic extraction fails or for non-DST files.
+# Inputs: file_path (str): Original file. image_path (str): Target PNG path.
+# Output: list: [image_path, thread_count, width, height] entered by user.
 def prompt_user_entry_data(file_path, image_path):
     # Iniltze valid flag to false
     input_valid = False
@@ -144,24 +172,35 @@ def prompt_user_entry_data(file_path, image_path):
     return property_list
 
 # Will update passed CSV writer and image storage using the passed file and valid counter, will create and store a data entry and PNG image from the passed file, if in prediction mode then will prompt for image input, will output progress messages and return values for valid, skipped
-def update_dataset_csv(csv_writer, image_storage, file_path, valid_file_counter_ref):
-    # Set counter from counter reference
-    valid_counter = valid_file_counter_ref[0]
-
+# Purpose: Create and save dataset entry from file and update CSV with metadata and PNG.
+# Inputs: csv_writer (csv.writer), image_storage (str), file_path (str), valid_file_counter (int), training (bool)
+# Output: tuple: (valid_count, skipped_count, new_file_counter)
+def update_dataset_csv(csv_writer, image_storage, file_path, valid_file_counter, training=False):
     # Determine if file is a DST for later operations
     dst_input_mode = file_path.lower().endswith('.dst')
 
     # Create PNG image path
-    image_path = image_storage + "\\" + str(valid_counter) + ".png"
+    image_path = image_storage + "\\" + str(valid_file_counter) + ".png"
 
-    # Get entry data from user input or convert file into a pattern to determine determine
-    entry_data = determine_entry_data(file_path, image_path) if dst_input_mode else prompt_user_entry_data(file_path, image_path)
+    # Determine if in training mode
+    if training:
+        # In training mode
+        # Get entry data from user input or convert file into a pattern to determine
+        entry_data = determine_entry_data(file_path, image_path) if dst_input_mode else prompt_user_entry_data(file_path, image_path)
+
+    else:
+        # Not training mode
+        # Convert file into a pattern to determine entry data
+        entry_data = determine_entry_data(file_path, image_path)
+
+    # Try to convert and validate image into png
+    entry_conversion = convert_pattern_into_png(file_path, image_path) if dst_input_mode else convert_image_into_png(file_path, image_path)
 
     # Check first the return entry list is not empty and then the image is converted and store at image page within database_images
-    if entry_data != [] and convert_pattern_into_png(file_path, image_path) if dst_input_mode else convert_image_into_png(file_path, image_path):
+    if entry_data != [] and entry_conversion:
         # Valid
-        # Set return values to valid +1 and skipped +0
-        outcome_values = 1,0
+        # Set return values to valid +1 and skipped +0, valid file counter +1
+        outcome_values = 1, 0, valid_file_counter + 1
 
         # Write entry data to csv file
         csv_writer.writerow(entry_data)
@@ -171,8 +210,8 @@ def update_dataset_csv(csv_writer, image_storage, file_path, valid_file_counter_
     
     else:
         # Invalid
-        # Set return values to valid +0 and skipped +1
-        outcome_values = 0,1
+        # Set return values to valid +0 and skipped +1, valid file counter +0
+        outcome_values = 0, 1, valid_file_counter
 
         # Update output message with invalid entry data
         output_message = f"{file_path} is invalid entry" 
@@ -184,7 +223,10 @@ def update_dataset_csv(csv_writer, image_storage, file_path, valid_file_counter_
     return outcome_values
 
 # Will recursivly scans through all directories within database path and update dataset using the file infomation, will return flag based on valid execution
-def scan_files(csv_writer, image_storage, path=".", valid_file_counter_ref=[0]):
+# Purpose: Recursively scan directory tree, updating dataset for all valid files.
+# Inputs: csv_writer (csv.writer), image_storage (str), path (str), training (bool), valid_file_counter (int)
+# Output: tuple: (valid_files, skipped_files, total_files, valid_file_counter)
+def scan_files(csv_writer, image_storage, path=".", training=False, valid_file_counter=0):
     # Import libaries
     import os
 
@@ -194,53 +236,79 @@ def scan_files(csv_writer, image_storage, path=".", valid_file_counter_ref=[0]):
     total_files = 0
 
     # Cycle through directory for each path
-    with os.scandir(path) as entries:
-        for entry in entries:
-            # Verfiy file is a DST, PNG, JPEG, or JPG file
-            if entry.is_file() and entry.path.lower().endswith((".dst", ".png", ".jpg", ".jpeg")):
-                # Attempt to udpate CSV file using passed path and store returned values valid, skipped
-                valid, skipped = update_dataset_csv(csv_writer, image_storage, entry.path, valid_file_counter_ref)
+    try:
+        with os.scandir(path) as entries:
+            for entry in entries:
+                try:
+                    # Verfiy file is a DST, PNG, JPEG, or JPG file
+                    if entry.is_file() and entry.path.lower().endswith((".dst", ".png", ".jpg", ".jpeg")):
+                        # Attempt to udpate CSV file using passed path and store returned values valid, skipped
+                        valid, skipped, valid_file_counter = update_dataset_csv(csv_writer, image_storage, entry.path, valid_file_counter, training)
 
-                # Update file stats
-                valid_files += valid
-                skipped_files += skipped
-                total_files += 1
+                        # Update file stats
+                        valid_files += valid
+                        skipped_files += skipped
+                        total_files += 1
 
-            # Recursivly call self
-            elif entry.is_dir():
-                # Update file stats
-                valid, skipped, total = scan_files(csv_writer, image_storage, entry.path, valid_file_counter_ref)
-                valid_files += valid
-                skipped_files += skipped
-                total_files += total
+                    # Recursivly call self
+                    elif entry.is_dir():
+                        # Update file stats
+                        valid, skipped, total, valid_file_counter = scan_files(csv_writer, image_storage, entry.path, training, valid_file_counter)
+                        valid_files += valid
+                        skipped_files += skipped
+                        total_files += total
 
-    # Return execute valid flag
-    return valid_files, skipped_files, total_files
+                    # Invalid file type
+                    else:
+                        # Update file stats
+                        skipped_files += 1
+                        total_files += 1
+                
+                except Exception as e:
+                    print(f"Error processing - {entry} - {e}")
+                    skipped_files += 1
+                    total_files += 1
+
+    except Exception as e:
+        print(f"Error scanning - {path} - {e}")
+
+    # Return 
+    return valid_files, skipped_files, total_files, valid_file_counter
 
 # Will create CSV file and store at the passed CSV path from the infomation scraped from the passed database path, will remove the old csv file if found and return flag based on valid execution 
-def scrape_data_from(csv_path, database_path, image_storage):
+# Purpose: Build a CSV dataset from embroidery/image files, removing old files and saving new ones.
+# Inputs: database_path (str), csv_path (str), image_storage (str), training (bool)
+# Output: bool: True if scraping succeeded, False otherwise.
+def scrape_data_from(database_path, csv_path, image_storage, training=False):
     # Import libaries
     import os
+    import shutil
     from csv import writer
 
     # Import constants
     import constants
 
     try:
-        # Remove old csv file
+        # Remove old csv and image files
         os.remove(csv_path)
 
-        # Set remove message
-        fileRemoveMessage = "Removed file"
+        # Remove image files
+        shutil.rmtree(image_storage)
 
-    except OSError:
         # Set remove message
-        fileRemoveMessage = "No fine found"
+        fileRemoveMessage = "Removed files"
+
+    except OSError as e:
+        # Set remove message
+        fileRemoveMessage = f"Removal error - {e}"
 
     # Output remove message
-    print(csv_path + " - " + fileRemoveMessage)
+    print(fileRemoveMessage)
 
     try:
+        # Create image directory
+        os.makedirs(image_storage)
+
         # Create csv writer file object using csv path
         with open(csv_path, 'w', newline='') as csv_writer_file:
             # Create csv writer object
@@ -250,20 +318,20 @@ def scrape_data_from(csv_path, database_path, image_storage):
             csv_writer.writerow([constants.IMAGE_PATH, constants.THREAD_COUNT, constants.WIDTH, constants.HEIGHT])
 
             # Scanning files from database path, return stats of files
-            files_valid, files_skipped, files_total = scan_files(csv_writer, image_storage, database_path)
+            files_valid, files_skipped, files_total, _ = scan_files(csv_writer, image_storage, database_path, training)
 
             # Close csv writer object
             csv_writer_file.close()
 
         # Set processing file outcome
-        processing_outcome = f"{database_path}: Files valid - {files_valid}\tFiles skipped - {files_skipped}\tFiles total - {files_total}"
+        processing_outcome = f"\n{database_path}:\nFiles valid - {files_valid}\tFiles skipped - {files_skipped}\tFiles total - {files_total}"
 
         # Set exection valid flag to true
         execution_valid_flag = True
 
-    except:
+    except Exception as e:
         # Set processing file outcome
-        processing_outcome = f"{database_path} - invalid, falled scraping process"
+        processing_outcome = f"\n{database_path} - invalid - failed scraping process\n{e}"
 
         # Set exection valid flag to False
         execution_valid_flag = False
